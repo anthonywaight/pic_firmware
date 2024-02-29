@@ -19,61 +19,79 @@
 #pragma config LVP = OFF      // Low Voltage Programming disabled
 
 
-#define ARRAY_CNT 32                    //number of bytes in array
+#define ARRAY_CNT 32                                //number of bytes in array
 
-uint8_t slaveAddress = 0x30;            //7bit slave addr
-uint8_t index = 0;                      //array pointer
-uint8_t temp = 0;                       // temp reg
-uint8_t regAdd = 1;                     //first databyte was reg add
+uint8_t slaveAddress = 0x30;                        //7bit slave addr
+uint8_t index = 0;                                  //array pointer
+uint8_t temp = 0;                                   // temp reg
+uint8_t regAdd = 1;                                 //first databyte was reg add
 
 uint8_t i2cArray[ARRAY_CNT] = 
 {0xFF,0xEE,0xDD,0xCC,0xBB,0xAA,0x99,0x88,0x77,0x66,0x55,0x44,0x33,0x22,0x11,0xFA,0xEA,0xDA,0xCA,0xBA,0xFB,0xFC,0xFD,0xFE,0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08};
 
-void I2C_Initialize(void){
+void __interrupt()  ISR(void);                         //function prototype
+void I2C_Initialize(void);                             //function prototype
 
-    SSP1STATbits.SMP = 1;                           //disable slew rate control
-    SSP1CON1bits.SSPM = 0x6;                        //set to slave mode
-    SSP1CON2bits.SEN = 1;                           //enable clock stretching
-    SSP1CON3bits.SBCDE = 1;                         //enable BCLIF
-    SSP1ADD = slaveAddress;
+
+
+void main()
+{
+
+    //application code here
+}
+
+
+void I2C_Initialize(void)
+{
+
+    SSP1STATbits.SMP = 1;                               //disable slew rate control
+    SSP1CON1bits.SSPM = 0x6;                            //set to slave mode
+    SSP1CON2bits.SEN = 1;                               //enable clock stretching
+    SSP1CON3bits.SBCDE = 1;                             //enable BCLIF
+    SSP1ADD = slaveAddress;                             //idk if <<1 is right, but since LSB is a dont care, shouldnt we shift the address left by 1?
     SSP1CON1bits.SSPEN = 1;
 
-    PIR3bits.BCL1IF = 0;                            //clear bus collision IF
-    PIR3bits.SSP1IF = 0;                            //clear SSP interrupt flag
-    PIE3bits.BCL1IE = 1;                            //enable BCLIF
-    PIE3bits.SSP1IE = 1;                            //enable SSPIF
-    INTCONbits.PEIE = 1;                            //enable periph interrupts
-    INTCONbits.GIE = 1;                             //enable glboal interrupts
+    PIR3bits.BCL1IF = 0;                                //clear bus collision IF
+    PIR3bits.SSP1IF = 0;                                //clear SSP interrupt flag
+    PIE3bits.BCL1IE = 1;                                //enable BCLIF
+    PIE3bits.SSP1IE = 1;                                //enable SSPIF
+    INTCONbits.PEIE = 1;                                //enable periph interrupts
+    INTCONbits.GIE = 1;                                 //enable glboal interrupts
 }
 
 void __interrupt()  ISR(void)
 {
-    if(PIR3bits.SSP1IF)                             //check for SSPIF
+    if(PIR3bits.SSP1IF)                                 //check for SSPIF
     {                
-        if(SSP1STATbits.R_nW == 1)                  //master read(slave transmit)
+        if(SSP1STATbits.R_nW == 1)                      //master read(slave transmit)
         {    
-            SSP1BUF = i2cArray[index++];            //load array value
-            SSP1CON1bits.CKP = 1;                   //release clock stretch                                          
+            SSP1BUF = i2cArray[index++];                //load array value
+            SSP1CON1bits.CKP = 1;                       //release clock stretch                                          
         }   
     
-        if(SSP1STATbits.R_nW == 0)                  // master write (slave receive)
+        if(SSP1STATbits.R_nW == 0)                      // master write (slave receive)
         {     
-            if(SSP1STATbits.D_nA == 0){             //last byte was an addr
-                regAdd = 1;                         //next byte register addr
-                temp = SSP1BUF;                     //clear bf
-                SSP1CONbits.CKP = 1;                //release clock stretch
+            if(SSP1STATbits.D_nA == 0)                  //last byte was an addr
+            {             
+                regAdd = 1;                             //next byte register addr
+                temp = SSP1BUF;                         //clear bf
+                SSP1CONbits.CKP = 1;                    //release clock stretch
             }
-            if(SSP1STATbits.D_nA == 1){             //last byte was data
-                if(regAdd == 1){                    //last byte was register address
-                    index = SSP1BUF;                //load register address
-                    regAdd = 0;                     //next byte will be true data
+            if(SSP1STATbits.D_nA == 1)                  //last byte was data
+            {             
+                if(regAdd == 1)                         //last byte was register address
+                {                       
+                    index = SSP1BUF;                    //load register address
+                    regAdd = 0;                         //next byte will be true data
                 }        
                 else
                 {
-                    if(index < ARRAY_CNT){              //within boundaries?
+                    if(index < ARRAY_CNT)               //within boundaries?
+                    {              
                         i2cArray[index++] == SSP1BUF;   //yes, read SSP1BUF
                     } 
-                    else {
+                    else 
+                    {
                         temp = SSP1BUF;                 //no, discard data
                     }    
                 }
