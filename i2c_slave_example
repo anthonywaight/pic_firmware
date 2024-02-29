@@ -1,5 +1,5 @@
 #include <xc.h>
-
+#include <stdio.h>
 // Configuration settings
 #pragma config FOSC = INTOSC  // Internal oscillator
 #pragma config WDTE = OFF     // Watchdog Timer disabled
@@ -18,7 +18,7 @@
 #pragma config BORV = LO      // Brown-out Reset Voltage (Vbor), low trip point selected
 #pragma config LVP = OFF      // Low Voltage Programming disabled
 
-
+//I2C SETUP
 #define ARRAY_CNT 32                                //number of bytes in array
 
 uint8_t slaveAddress = 0x30;                        //7bit slave addr
@@ -32,15 +32,44 @@ uint8_t i2cArray[ARRAY_CNT] =
 void __interrupt()  ISR(void);                         //function prototype
 void I2C_Initialize(void);                             //function prototype
 
+//END OF I2C SETUP
+
+//DATA PROCESSING SETUP
+#define ITEM_MASK 0xF0                              //define masks for item and quantity
+#define QUANTITY_MASK 0x0F
+
+enum Items                                          //define the items
+{
+    ITEM_A = 0x10,
+    ITEM_B = 0x20,
+    ITEM_C = 0x30,
+    ITEM_D = 0x40,
+    ITEM_E = 0x50,
+    ITEM_F = 0x60
+};
+
+enum Items extractItem(uint8_t data);           //function prototype
+int extractQuantity(uint8_t data);              //function prototype
+//END OF DATA PROCESSING SETUP
 
 
 void main(void)
 {
-
-    //application code here
+    ANSELCbits.ANSELC = 0;          // Digital I/O on port C
+    TRISCbits.TRISC4 = 1;          // SDA pin (RC4) is input
+    TRISCbits.TRISC3 = 1;          // SCL pin (RC3) is input
+    
+    ANSELDbits.ANSELD = 0;      //portD is digital
+    TRISDbits.TRISD0 = 1;       //RDO thru RD5 are inputs
+    TRISDbits.TRISD1 = 1;
+    TRISDbits.TRISD2 = 1;
+    TRISDbits.TRISD3 = 1;
+    TRISDbits.TRISD4 = 1;
+    TRISDbits.TRISD5 = 1;
+    
 }
 
-
+//I2C functions//
 void I2C_Initialize(void)
 {
 
@@ -48,7 +77,7 @@ void I2C_Initialize(void)
     SSP1CON1bits.SSPM = 0x6;                            //set to slave mode
     SSP1CON2bits.SEN = 1;                               //enable clock stretching
     SSP1CON3bits.SBCDE = 1;                             //enable BCLIF
-    SSP1ADD = slaveAddress;                             //idk if <<1 is right, but since LSB is a dont care, shouldnt we shift the address left by 1?
+    SSP1ADD = slaveAddress;                             
     SSP1CON1bits.SSPEN = 1;
 
     PIR3bits.BCL1IF = 0;                                //clear bus collision IF
@@ -86,16 +115,106 @@ void __interrupt()  ISR(void)
                 }        
                 else
                 {
-                    if(index < ARRAY_CNT)               //within boundaries?
+                    if(index < ARRAY_CNT)                                       //within boundaries?
                     {              
-                        i2cArray[index++] == SSP1BUF;   //yes, read SSP1BUF
+                        i2cArray[index++] == SSP1BUF;                           //yes, read SSP1BUF
+                        
+                        enum Items item = extractItem(i2cArray[index-1])        //extract items
+                        int quantity = extractQuantity(i2cArray[index-1])       //extract quantity
+
+                        switch(item)
+                        {
+                            case ITEM_A:
+                                //actuate servo for quantity needed for A
+                                for (int i = 0; i < quantity; i++) //generate a PWM signal that rotates the servo_A 45deg for each qty
+                                {
+                                    PORTDbits.RD0 = 1;
+                                    //delay for the ON time (adjust for desired duty cycle)
+                                    __delay_ms(50); //example:50ms ON time
+                                    //turn off the pin
+                                    PORTDbits.RDO = 0;
+                                    //delay for the OFF time (adjust value for desired duty cycle)
+                                    __delay_ms(50); //example: 50ms OFF time
+                                }
+                                break;
+                            case ITEM_B:
+                                //actuate servo for quantity needed for B
+                                for (int i = 0; i < quantity; i++) //generate a PWM signal that rotates the servo_A 45deg for each qty
+                                {
+                                    PORTDbits.RD1 = 1;
+                                    //delay for the ON time (adjust for desired duty cycle)
+                                    __delay_ms(50); //example:50ms ON time
+                                    //turn off the pin
+                                    PORTDbits.RD1 = 0;
+                                    //delay for the OFF time (adjust value for desired duty cycle)
+                                    __delay_ms(50); //example: 50ms OFF time
+                                }
+                                break;
+                            case ITEM_C:
+                                //actuate...
+                                for (int i = 0; i < quantity; i++) //generate a PWM signal that rotates the servo_A 45deg for each qty
+                                {
+                                    PORTDbits.RD2 = 1;
+                                    //delay for the ON time (adjust for desired duty cycle)
+                                    __delay_ms(50); //example:50ms ON time
+                                    //turn off the pin
+                                    PORTDbits.RD2 = 0;
+                                    //delay for the OFF time (adjust value for desired duty cycle)
+                                    __delay_ms(50); //example: 50ms OFF time
+                                }
+                                break;
+                            case ITEM_D:
+                                //actuate...
+                                 for (int i = 0; i < quantity; i++) //generate a PWM signal that rotates the servo_A 45deg for each qty
+                                {
+                                    PORTDbits.RD3 = 1;
+                                    //delay for the ON time (adjust for desired duty cycle)
+                                    __delay_ms(50); //example:50ms ON time
+                                    //turn off the pin
+                                    PORTDbits.RD3 = 0;
+                                    //delay for the OFF time (adjust value for desired duty cycle)
+                                    __delay_ms(50); //example: 50ms OFF time
+                                }
+                                break;
+                            case ITEM_E:
+                                //actuate
+                                 for (int i = 0; i < quantity; i++) //generate a PWM signal that rotates the servo_A 45deg for each qty
+                                {
+                                    PORTDbits.RD4 = 1;
+                                    //delay for the ON time (adjust for desired duty cycle)
+                                    __delay_ms(50); //example:50ms ON time
+                                    //turn off the pin
+                                    PORTDbits.RD4 = 0;
+                                    //delay for the OFF time (adjust value for desired duty cycle)
+                                    __delay_ms(50); //example: 50ms OFF time
+                                }
+                                break;
+                            case ITEM_F:
+                                //actuate
+                                for (int i = 0; i < quantity; i++) //generate a PWM signal that rotates the servo_A 45deg for each qty
+                                {
+                                    PORTDbits.RD5 = 1;
+                                    //delay for the ON time (adjust for desired duty cycle)
+                                    __delay_ms(50); //example:50ms ON time
+                                    //turn off the pin
+                                    PORTDbits.RD5 = 0;
+                                    //delay for the OFF time (adjust value for desired duty cycle)
+                                    __delay_ms(50); //example: 50ms OFF time
+                                }
+                                break;
+                            default:
+                                //unknown item
+                                //maybe blink an LED to show unknown item
+                                break;
+                        }
+                        
                     } 
                     else 
                     {
-                        temp = SSP1BUF;                 //no, discard data
+                        temp = SSP1BUF;                                         //no, discard data
                     }    
                 }
-                SSP1CON1bits.CKP = 1;                   //release clock stretch
+                SSP1CON1bits.CKP = 1;                                           //release clock stretch
             }   
 
         }
@@ -108,6 +227,18 @@ void __interrupt()  ISR(void)
     }
     PIR3bits.SSP1IF = 0;                                //clear SSP1IF
 }
-    
+//END OF I2C FUNCTIONS
+
+//DATA PROCESSING FUNCTIONS
+enum Items extractItem(uint8_t data)            //function to extract item from received data
+{
+    return (enum Items)(data & ITEM_MASK);
+}
+
+int extractQuantity(uint8_t data)
+{
+    return data & QUANTITY_MASK;
+}
+//END OF DATA PROCESSING FUNCTION
 
 
