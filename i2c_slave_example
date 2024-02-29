@@ -55,6 +55,7 @@ int extractQuantity(uint8_t data);              //function prototype
 
 void main(void)
 {
+    OSCCONbits.IRCF = 12;           //2Mhz clock, not sure if needed
     ANSELCbits.ANSELC = 0;          // Digital I/O on port C
     TRISCbits.TRISC4 = 1;          // SDA pin (RC4) is input
     TRISCbits.TRISC3 = 1;          // SCL pin (RC3) is input
@@ -66,6 +67,12 @@ void main(void)
     TRISDbits.TRISD3 = 1;
     TRISDbits.TRISD4 = 1;
     TRISDbits.TRISD5 = 1;
+    
+    void I2C_Initialize(void);          //init I2C once
+    while(1)
+    {
+        void __interrupt() ISR(void);  //loop the interrupt service
+    }
     
 }
 
