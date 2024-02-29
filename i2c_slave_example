@@ -34,7 +34,7 @@ void I2C_Initialize(void);                             //function prototype
 
 
 
-void main()
+void main(void)
 {
 
     //application code here
